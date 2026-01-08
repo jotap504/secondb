@@ -22,22 +22,24 @@ pid_file = "bot.pid"
 # Health-check server in a background thread
 class HealthHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
-        if self.path == '/':
-            self.send_response(200)
-            self.send_header("Content-type", "text/plain")
-            self.end_headers()
-            self.wfile.write(b"OK")
-        elif self.path == '/dashboard':
+        if self.path == '/' or self.path == '/dashboard':
             try:
+                if not os.path.exists("dashboard.html"):
+                    self.send_response(202) # Accepted - still processing
+                    self.send_header("Content-type", "text/plain; charset=utf-8")
+                    self.end_headers()
+                    self.wfile.write("El dashboard se está generando. Por favor, refresca en unos segundos...".encode('utf-8'))
+                    return
+
                 with open("dashboard.html", "rb") as f:
                     self.send_response(200)
                     self.send_header("Content-type", "text/html")
                     self.end_headers()
                     self.wfile.write(f.read())
-            except FileNotFoundError:
-                self.send_response(404)
+            except Exception as e:
+                self.send_response(500)
                 self.end_headers()
-                self.wfile.write(b"Dashboard not found")
+                self.wfile.write(f"Error serving dashboard: {str(e)}".encode())
         else:
             self.send_response(404)
             self.end_headers()
@@ -307,5 +309,25 @@ if __name__ == '__main__':
     # Start health-check server thread for Render
     threading.Thread(target=start_health_server, daemon=True).start()
 
+    # Trigger initial dashboard generation
+    async def initial_dashboard_gen():
+        logging.info("Triggering initial dashboard generation on startup...")
+        try:
+            await generate_dashboard.generate_dashboard_file_async()
+            logging.info("Initial dashboard generation complete.")
+        except Exception as e:
+            logging.error(f"Failed initial dashboard generation: {e}")
+
     print("El bot está corriendo con recordatorios activados y servidor de salud en puerto", os.getenv("PORT", 8000))
-    application.run_polling()
+    
+    # Run the setup and polling
+    loop = asyncio.get_event_loop()
+    loop.create_task(initial_dashboard_gen())
+    
+    try:
+        application.run_polling()
+    except Exception as e:
+        if "Conflict" in str(e):
+            logging.critical("🛑 ERROR DE CONFLICTO: Ya hay otra instancia del bot ejecutándose.")
+            logging.critical("Por favor, asegúrate de cerrar el bot en tu computadora local antes de desplegar en Render.")
+        raise e
