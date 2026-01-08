@@ -1,0 +1,10 @@
+python-telegram-bot[job-queue]
+python-dotenv
+supabase
+google-genai
+requests
+Pillow
+streamlit
+plotly
+psutil
+openai
