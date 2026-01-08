@@ -8,3 +8,5 @@ streamlit
 plotly
 psutil
 openai
+groq
+pandas
