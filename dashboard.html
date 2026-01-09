@@ -1,0 +1,53 @@
+
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Life OS - Panel de Control</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+    </style>
+</head>
+<body class="bg-[#0b0f1a] text-slate-200 min-h-screen">
+    <div class="flex flex-col md:flex-row h-screen overflow-hidden">
+        <aside class="w-full md:w-64 glass p-6 space-y-8">
+            <h1 class="text-xl font-bold">AI Life OS</h1>
+            <p class="text-xs text-slate-500">Actualizado: 11:01:30</p>
+        </aside>
+        <main class="flex-grow overflow-y-auto p-8 space-y-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="glass p-6 rounded-2xl">
+                    <p class="text-sm text-slate-400">Total Gastado</p>
+                    <h3 class="text-2xl font-bold">$482,016.00</h3>
+                </div>
+                <div class="glass p-6 rounded-2xl">
+                    <p class="text-sm text-slate-400">Tareas Pendientes</p>
+                    <h3 class="text-2xl font-bold">2</h3>
+                </div>
+                <div class="glass p-6 rounded-2xl">
+                    <p class="text-sm text-slate-400">Notas</p>
+                    <h3 class="text-2xl font-bold">2</h3>
+                </div>
+            </div>
+            <div class="glass p-6 rounded-2xl">
+                <h4 class="text-lg font-semibold mb-4">Gastos Recientes</h4>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <tbody class="divide-y divide-slate-700/30">
+                            <tr><td class="py-2 text-slate-400">2026-01-09</td><td class="py-2">No description</td><td class="py-2 text-right">$0.00</td></tr><tr><td class="py-2 text-slate-400">2026-01-08</td><td class="py-2">No description</td><td class="py-2 text-right">$0.00</td></tr><tr><td class="py-2 text-slate-400">2026-01-08</td><td class="py-2">No description</td><td class="py-2 text-right">$0.00</td></tr><tr><td class="py-2 text-slate-400">2026-01-08</td><td class="py-2">No description</td><td class="py-2 text-right">$0.00</td></tr><tr><td class="py-2 text-slate-400">2026-01-07</td><td class="py-2">Pago tarjeta de crédito</td><td class="py-2 text-right">$350,000.00</td></tr><tr><td class="py-2 text-slate-400">2026-01-07</td><td class="py-2">peaje</td><td class="py-2 text-right">$3,500.00</td></tr><tr><td class="py-2 text-slate-400">2026-01-07</td><td class="py-2">Analiza este audio, comprar</td><td class="py-2 text-right">$0.00</td></tr><tr><td class="py-2 text-slate-400">2026-01-06</td><td class="py-2">Coto supermercado</td><td class="py-2 text-right">$35,000.00</td></tr><tr><td class="py-2 text-slate-400">2026-01-06</td><td class="py-2">Carniceria</td><td class="py-2 text-right">$20,516.00</td></tr><tr><td class="py-2 text-slate-400">2026-01-06</td><td class="py-2">Supermercado</td><td class="py-2 text-right">$48,000.00</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script>lucide.createIcons();</script>
+</body>
+</html>
+    
