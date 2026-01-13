@@ -23,5 +23,5 @@ COPY . .
 # Expose the port (Render provides $PORT)
 EXPOSE 8000
 
-# Start the bot
-CMD ["python", "main.py"]
+# Start the FastAPI app with uvicorn
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

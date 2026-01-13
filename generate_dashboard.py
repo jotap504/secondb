@@ -34,8 +34,6 @@ def generate_html(expenses, tasks, notes):
     # Process Category Data for Pie Chart
     cat_data = {}
     for e in expenses:
-        # If the direct description doesn't look like a category, we'd need better data, 
-        # but for now we'll use description as a proxy or "General"
         desc = e.get('description', 'Otros')
         cat_data[desc] = cat_data.get(desc, 0) + float(e.get('amount', 0))
     
@@ -69,6 +67,7 @@ def generate_html(expenses, tasks, notes):
         body {{ 
             font-family: 'Plus Jakarta Sans', sans-serif; 
             background: radial-gradient(circle at top right, #1e293b, #0f172a, #020617);
+            overflow-x: hidden;
         }}
         .glass {{ 
             background: rgba(15, 23, 42, 0.6); 
@@ -89,6 +88,25 @@ def generate_html(expenses, tasks, notes):
         ::-webkit-scrollbar {{ width: 6px; }}
         ::-webkit-scrollbar-track {{ background: transparent; }}
         ::-webkit-scrollbar-thumb {{ background: #334155; border-radius: 10px; }}
+
+        #chat-window {{
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }}
+        #chat-window.open {{
+            transform: translateX(0);
+        }}
+        .spinner {{
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-left-color: #a855f7;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 1s linear infinite;
+        }}
+        @keyframes spin {{
+            to {{ transform: rotate(360deg); }}
+        }}
     </style>
 </head>
 <body class="text-slate-200 min-h-screen Selection:bg-purple-500/30">
@@ -103,9 +121,10 @@ def generate_html(expenses, tasks, notes):
                 </p>
             </div>
             <div class="flex gap-4">
-                <div class="glass px-4 py-2 rounded-full text-sm font-medium border-purple-500/20">
-                    Sincronizado con Supabase
-                </div>
+                <button onclick="toggleChat()" class="glass px-4 py-2 rounded-full text-sm font-medium border-purple-500/20 hover:bg-purple-500/10 transition-colors flex items-center gap-2">
+                    <i data-lucide="message-square" class="w-4 h-4"></i>
+                    IA Chat
+                </button>
             </div>
         </header>
 
@@ -189,7 +208,7 @@ def generate_html(expenses, tasks, notes):
                         <tbody class="divide-y divide-slate-800/50">
                             {''.join([f'''
                             <tr class="group hover:bg-slate-800/30 transition-colors">
-                                <td class="py-4 text-sm text-slate-400">{e.get("created_at")[:10]}</td>
+                                <td class="py-4 text-sm text-slate-400">{e.get("created_at")[:10] if e.get("created_at") else "N/A"}</td>
                                 <td class="py-4 font-medium">{e.get("description")}</td>
                                 <td class="py-4 text-right font-bold text-blue-400">${float(e.get("amount", 0)):,.2f}</td>
                             </tr>''' for e in expenses[:10]])}
@@ -215,14 +234,160 @@ def generate_html(expenses, tasks, notes):
         </div>
     </div>
 
+    <!-- Chat Overlay -->
+    <div id="chat-window" class="fixed inset-y-0 right-0 w-full md:w-96 glass z-50 flex flex-col shadow-2xl border-l border-white/10">
+        <div class="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
+            <div class="flex items-center gap-3">
+                <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                <h4 class="font-bold">IA Assistant</h4>
+            </div>
+            <button onclick="toggleChat()" class="p-2 hover:bg-white/10 rounded-full transition-colors">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        
+        <div id="chat-messages" class="flex-grow overflow-y-auto p-6 space-y-4">
+            <div class="bg-blue-500/10 border border-blue-500/20 p-4 rounded-2xl text-sm">
+                ¡Hola! Puedo ayudarte a registrar gastos, tareas o notas. Ej: "Gasté 500 en pizza"
+            </div>
+        </div>
+
+        <!-- Attachment Preview -->
+        <div id="attachment-preview" class="px-6 py-2 border-t border-white/10 bg-white/5 hidden">
+            <div class="flex items-center justify-between p-2 bg-slate-900/80 rounded-xl border border-white/10">
+                <div class="flex items-center gap-3 truncate">
+                    <i id="preview-icon" data-lucide="image" class="w-4 h-4 text-purple-400"></i>
+                    <span id="preview-name" class="text-xs text-slate-300 truncate font-medium">file.jpg</span>
+                </div>
+                <button onclick="clearAttachment()" class="p-1 hover:bg-white/10 rounded-full">
+                    <i data-lucide="x" class="w-3 h-3 text-slate-500"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="p-6 border-t border-white/10 bg-white/5">
+            <div class="flex items-end gap-2">
+                <div class="flex-grow relative">
+                    <input type="text" id="chat-input" 
+                        class="w-full bg-slate-900/50 border border-white/10 rounded-2xl py-3 px-4 pr-12 focus:outline-none focus:border-purple-500/50 transition-all text-sm"
+                        placeholder="Escribe un mensaje..."
+                        onkeypress="if(event.key === 'Enter') sendMessage()">
+                    
+                    <div class="absolute right-2 top-1.5 flex gap-1">
+                        <label for="image-upload" class="p-1.5 hover:bg-white/5 rounded-xl cursor-pointer text-slate-400 hover:text-purple-400 transition-colors">
+                            <i data-lucide="image" class="w-4 h-4"></i>
+                            <input type="file" id="image-upload" accept="image/*" class="hidden" onchange="handleFile(this, 'image')">
+                        </label>
+                        <label for="audio-upload" class="p-1.5 hover:bg-white/5 rounded-xl cursor-pointer text-slate-400 hover:text-blue-400 transition-colors">
+                            <i data-lucide="mic" class="w-4 h-4"></i>
+                            <input type="file" id="audio-upload" accept="audio/*" class="hidden" onchange="handleFile(this, 'audio')">
+                        </label>
+                    </div>
+                </div>
+                <button id="send-btn" onclick="sendMessage()" class="p-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl hover:scale-105 transition-transform shadow-lg shadow-purple-500/20 disabled:opacity-50 disabled:scale-100">
+                    <i data-lucide="send" id="send-icon" class="w-5 h-5"></i>
+                    <div id="send-spinner" class="spinner hidden"></div>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         lucide.createIcons();
 
-        // Common Chart Config
+        let currentFile = null;
+        let currentFileType = null;
+
+        function toggleChat() {{
+            const win = document.getElementById('chat-window');
+            win.classList.toggle('open');
+            if (win.classList.contains('open')) {{
+                document.getElementById('chat-input').focus();
+            }}
+        }}
+
+        function handleFile(input, type) {{
+            const file = input.files[0];
+            if (!file) return;
+
+            currentFile = file;
+            currentFileType = type;
+
+            document.getElementById('preview-name').textContent = file.name;
+            document.getElementById('preview-icon').setAttribute('data-lucide', type === 'image' ? 'image' : 'mic');
+            document.getElementById('attachment-preview').classList.remove('hidden');
+            lucide.createIcons();
+            
+            document.getElementById('chat-input').focus();
+        }}
+
+        function clearAttachment() {{
+            currentFile = null;
+            currentFileType = null;
+            document.getElementById('image-upload').value = '';
+            document.getElementById('audio-upload').value = '';
+            document.getElementById('attachment-preview').classList.add('hidden');
+        }}
+
+        async function sendMessage() {{
+            const input = document.getElementById('chat-input');
+            const msg = input.value.trim();
+            const btn = document.getElementById('send-btn');
+            const icon = document.getElementById('send-icon');
+            const spinner = document.getElementById('send-spinner');
+
+            if (!msg && !currentFile) return;
+
+            btn.disabled = true;
+            icon.classList.add('hidden');
+            spinner.classList.remove('hidden');
+
+            addMessage(msg || (currentFileType === 'image' ? '🖼️ Imagen enviada' : '🎙️ Audio enviado'), 'user');
+            input.value = '';
+
+            const formData = new FormData();
+            formData.append('message', msg || "Analiza este archivo");
+            if (currentFile) {{
+                formData.append(currentFileType, currentFile);
+            }}
+
+            clearAttachment();
+
+            try {{
+                const response = await fetch('/api/chat', {{
+                    method: 'POST',
+                    body: formData
+                }});
+                
+                const data = await response.json();
+                addMessage(data.response, 'bot');
+                
+                if (data.category && data.category !== 'OTHER') {{
+                    setTimeout(() => location.reload(), 2500);
+                }}
+            }} catch (e) {{
+                addMessage('Error: No pude conectar con el servidor.', 'bot');
+            }} finally {{
+                btn.disabled = false;
+                icon.classList.remove('hidden');
+                spinner.classList.add('hidden');
+            }}
+        }}
+
+        function addMessage(text, side) {{
+            const container = document.getElementById('chat-messages');
+            const div = document.createElement('div');
+            div.className = side === 'user' 
+                ? 'bg-white/10 ml-8 p-4 rounded-2xl text-sm' 
+                : 'bg-gradient-to-br from-blue-600/20 to-purple-600/20 border border-white/5 mr-8 p-4 rounded-2xl text-sm shadow-xl';
+            div.textContent = text;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }}
+
         Chart.defaults.color = '#94a3b8';
         Chart.defaults.font.family = 'Plus Jakarta Sans';
 
-        // Category Chart
         const catCtx = document.getElementById('categoryChart').getContext('2d');
         new Chart(catCtx, {{
             type: 'doughnut',
@@ -244,7 +409,6 @@ def generate_html(expenses, tasks, notes):
             }}
         }});
 
-        // Trend Chart
         const trendCtx = document.getElementById('trendChart').getContext('2d');
         new Chart(trendCtx, {{
             type: 'line',
